@@ -60,7 +60,7 @@ def process_op_code(opcode):
 
     param = []
 
-    if op_mode not in (1, 2, 3, 4, 99):
+    if op_mode not in (1, 2, 3, 4, 5, 6, 7, 8, 99):
         raise ValueError(f"Invalid op code: {op_mode}")
 
     for _ in range(3):
@@ -81,28 +81,28 @@ def parse_intcode(intcode):
 
     def intcode_op(index, op, param):
         step = 0
-        if op == 1 or op == 2:
+        if op == 1:
+            step = 4
             value_1 = param_value(index + 1, param[0])
             value_2 = param_value(index + 2, param[1])
             value_3 = param_value(index + 3, 1)
-            step = 4
-        elif op == 3:
-            value_1 = param_value(index + 1, 1)
-            step = 2
-        elif op == 4:
-            value_1 = param_value(index + 1, param[0])
-            step = 2
-
-        if op == 1:
             intcode[value_3] = value_1 + value_2
         elif op == 2:
+            step = 4
+            value_1 = param_value(index + 1, param[0])
+            value_2 = param_value(index + 2, param[1])
+            value_3 = param_value(index + 3, 1)
             intcode[value_3] = value_1 * value_2
         elif op == 3:
+            step = 2
+            value_1 = param_value(index + 1, 1)
             in_int = int(input("Input single int:"))
             if not 0 < in_int < 10:
                 raise ValueError(f"Invalid input provided: {in_int}")
             intcode[value_1] = in_int
         elif op == 4:
+            step = 2
+            value_1 = param_value(index + 1, param[0])
             print(f"Output: {value_1}")
         else:
             raise ValueError(f"Invalid op code provided: {op}")
