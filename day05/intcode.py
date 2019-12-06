@@ -86,8 +86,11 @@ def parse_intcode(intcode):
             value_2 = param_value(index + 2, param[1])
             value_3 = param_value(index + 3, 1)
             step = 4
-        elif op == 3 or op == 4:
-            value_1 = param_value(index + 3, 1)
+        elif op == 3:
+            value_1 = param_value(index + 1, 1)
+            step = 2
+        elif op == 4:
+            value_1 = param_value(index + 1, param[0])
             step = 2
 
         if op == 1:
