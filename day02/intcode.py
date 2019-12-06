@@ -34,26 +34,21 @@ def read_intcode(intcode_file):
 def parse_intcode(intcode):
     i = 0
 
-    def intcode_sum(num1, num2, total):
+    def intcode_op(num1, num2, total, op):
         num1_value = intcode[intcode[num1]]
         num2_value = intcode[intcode[num2]]
         total_position = intcode[total]
-        intcode[total_position] = num1_value + num2_value
-
-    def intcode_mul(num1, num2, total):
-        num1_value = intcode[intcode[num1]]
-        num2_value = intcode[intcode[num2]]
-        total_position = intcode[total]
-        intcode[total_position] = num1_value * num2_value
+        if op == 1:
+            intcode[total_position] = num1_value + num2_value
+        if op == 2:
+            intcode[total_position] = num1_value * num2_value
 
     while i < len(intcode):
         op_mode = intcode[i]
         if op_mode not in (1, 2, 99):
             raise ValueError(f"Invalid op code: {op_mode}")
-        elif op_mode == 1:
-            intcode_sum(i + 1, i + 2, i + 3)
-        elif op_mode == 2:
-            intcode_mul(i + 1, i + 2, i + 3)
+        elif op_mode == 1 or op_mode == 2:
+            intcode_op(i + 1, i + 2, i + 3, op_mode)
         else:
             return intcode
 
