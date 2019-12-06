@@ -31,6 +31,7 @@ def get_wires(wire_file):
 
 def map_wire_path(wire_movement):
     wire_map = {}
+    total_steps = 0
     start_pt = [0, 0]
     for movement in wire_movement.split(","):
         direction, steps = movement[0], int(movement[1:])
@@ -47,25 +48,37 @@ def map_wire_path(wire_movement):
                 start_pt[0] -= 1
             elif direction == "R":
                 start_pt[0] += 1
-            wire_map[(start_pt[0], start_pt[1])] = True
+            total_steps += 1
+            wire_map[(start_pt[0], start_pt[1])] = total_steps
 
     return wire_map
 
 
-def closest_distance(wires):
+def get_intersect_pts(wire_maps):
+    intersect_pts = []
+
+    for coord in wire_maps[0]:
+        if coord != (0, 0) and coord in wire_maps[1]:
+            intersect_pts.append(coord)
+
+    return intersect_pts
+
+
+def closest_distance(wires, type="manhattan"):
     wire_maps = []
     for wire in wires:
         wire_maps.append(map_wire_path(wire))
 
-    cross_pts = []
-    for coord in wire_maps[0]:
-        if coord != (0, 0) and coord in wire_maps[1]:
-            cross_pts.append(coord)
+    intersect_pts = get_intersect_pts(wire_maps)
 
-    manhattan_dist = [abs(x) + abs(y) for (x, y) in cross_pts]
-
-    return min(manhattan_dist)
+    if type == "manhattan":
+        return min([abs(x) + abs(y) for (x, y) in intersect_pts])
+    elif type == "combined_steps":
+        return min(
+            [wire_maps[0][coord] + wire_maps[1][coord] for coord in intersect_pts]
+        )
 
 
 wires = get_wires("./input")
-print(closest_distance(wires))
+print("Manhattan Distance:", closest_distance(wires))
+print("Combined Steps:", closest_distance(wires, "combined_steps"))
