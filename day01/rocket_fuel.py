@@ -22,4 +22,4 @@ def calculate_fuel(mass_file):
     return total_fuel
 
 
-print(calculate_fuel("./input"))
+print(calculate_fuel("../input/modules_mass.txt"))
