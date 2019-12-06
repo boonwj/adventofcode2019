@@ -80,43 +80,65 @@ def parse_intcode(intcode):
             return intcode[id]
 
     def intcode_op(index, op, param):
-        step = 0
+        next_index = index
         if op == 1:
-            step = 4
+            next_index += 4
             value_1 = param_value(index + 1, param[0])
             value_2 = param_value(index + 2, param[1])
             value_3 = param_value(index + 3, 1)
             intcode[value_3] = value_1 + value_2
         elif op == 2:
-            step = 4
+            next_index += 4
             value_1 = param_value(index + 1, param[0])
             value_2 = param_value(index + 2, param[1])
             value_3 = param_value(index + 3, 1)
             intcode[value_3] = value_1 * value_2
         elif op == 3:
-            step = 2
+            next_index += 2
             value_1 = param_value(index + 1, 1)
             in_int = int(input("Input single int:"))
             if not 0 < in_int < 10:
                 raise ValueError(f"Invalid input provided: {in_int}")
             intcode[value_1] = in_int
         elif op == 4:
-            step = 2
+            next_index += 2
             value_1 = param_value(index + 1, param[0])
             print(f"Output: {value_1}")
+        elif op == 5:
+            value_1 = param_value(index + 1, param[0])
+            if value_1 != 0:
+                next_index = param_value(index + 2, param[1])
+            else:
+                next_index += 3
+        elif op == 6:
+            value_1 = param_value(index + 1, param[0])
+            if value_1 == 0:
+                next_index = param_value(index + 2, param[1])
+            else:
+                next_index += 3
+        elif op == 7:
+            next_index += 4
+            value_1 = param_value(index + 1, param[0])
+            value_2 = param_value(index + 2, param[1])
+            value_3 = param_value(index + 3, 1)
+            intcode[value_3] = 1 if value_1 < value_2 else 0
+        elif op == 8:
+            next_index += 4
+            value_1 = param_value(index + 1, param[0])
+            value_2 = param_value(index + 2, param[1])
+            value_3 = param_value(index + 3, 1)
+            intcode[value_3] = 1 if value_1 == value_2 else 0
         else:
             raise ValueError(f"Invalid op code provided: {op}")
 
-        return step
+        return next_index
 
     while i < len(intcode):
         op_mode, param = process_op_code(intcode[i])
         if op_mode == 99:
             return intcode
         else:
-            steps = intcode_op(i, op_mode, param)
-
-        i += steps
+            i = intcode_op(i, op_mode, param)
 
 
 def intcode_executor(intcode_file, noun=None, verb=None):
