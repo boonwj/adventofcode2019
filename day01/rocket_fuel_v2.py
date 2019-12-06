@@ -4,8 +4,6 @@ on Santa's spacecraft.
 
 This implementation takes into account the fuel required to carry the fuel
 necessary to carry the modules.
-
-Advent of Code 2019: Day 2
 """
 
 

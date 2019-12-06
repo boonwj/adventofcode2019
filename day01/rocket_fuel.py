@@ -1,8 +1,6 @@
 """
 Rocket Fuel, computes the fuel required to launch all modules
 on Santa's spacecraft.
-
-Advent of Code 2019: Day 1
 """
 
 def required_fuel(mass):
