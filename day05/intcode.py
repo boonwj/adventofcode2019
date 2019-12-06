@@ -69,6 +69,7 @@ def process_op_code(opcode):
 
     return (op_mode, param)
 
+
 def parse_intcode(intcode):
     i = 0
 
@@ -83,10 +84,10 @@ def parse_intcode(intcode):
         if op == 1 or op == 2:
             value_1 = param_value(index + 1, param[0])
             value_2 = param_value(index + 2, param[1])
-            value_3 = intcode[index + 3]
+            value_3 = param_value(index + 3, 1)
             step = 4
         elif op == 3 or op == 4:
-            value_1 = param_value(index + 1, param[0])
+            value_1 = param_value(index + 3, 1)
             step = 2
 
         if op == 1:
@@ -106,37 +107,25 @@ def parse_intcode(intcode):
         return step
 
     while i < len(intcode):
-        print("Before:", intcode)
         op_mode, param = process_op_code(intcode[i])
         if op_mode == 99:
             return intcode
         else:
             steps = intcode_op(i, op_mode, param)
-        print(op_mode, param)
-        print(intcode)
 
         i += steps
 
 
-def intcode_executor(intcode_file, noun, verb):
+def intcode_executor(intcode_file, noun=None, verb=None):
     intcode = read_intcode(intcode_file)
-    intcode[1] = noun
-    intcode[2] = verb
+    if noun:
+        intcode[1] = noun
+    if verb:
+        intcode[2] = verb
     processed_intcode = parse_intcode(intcode)
 
-    return processed_intcode[0]
-
-
-def brute_force_intcode(intcode_file, expected_value):
-    for noun in range(99):
-        for verb in range(99):
-            result = intcode_executor(intcode_file, noun, verb)
-            if result == expected_value:
-                return noun, verb
-
-    return None
+    return
 
 
 if __name__ == "__main__":
-    print(intcode_executor("./input", 12, 2))
-    print(brute_force_intcode("./input", 19690720))
+    intcode_executor("./input")
