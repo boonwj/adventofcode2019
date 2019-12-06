@@ -55,11 +55,25 @@ def parse_intcode(intcode):
         i += 4
 
 
-def intcode_executor(intcode_file):
+def intcode_executor(intcode_file, noun, verb):
     intcode = read_intcode(intcode_file)
+    intcode[1] = noun
+    intcode[2] = verb
     processed_intcode = parse_intcode(intcode)
 
-    return processed_intcode
+    return processed_intcode[0]
 
 
-print(intcode_executor("./input"))
+def brute_force_intcode(intcode_file, expected_value):
+    for noun in range(99):
+        for verb in range(99):
+            result = intcode_executor(intcode_file, noun, verb)
+            if result == expected_value:
+                return noun, verb
+
+    return None
+
+
+print(intcode_executor("./input", 12, 2))
+
+print(brute_force_intcode("./input", 19690720))
