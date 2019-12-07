@@ -41,6 +41,26 @@ def test_count_orbits(orbits, result):
     assert count_orbits(orbit_map) == result
 
 
+def test_orbital_transfer():
+    orbits = [
+        ("COM", "B"),
+        ("B", "C"),
+        ("C", "D"),
+        ("D", "E"),
+        ("E", "F"),
+        ("B", "G"),
+        ("G", "H"),
+        ("D", "I"),
+        ("E", "J"),
+        ("J", "K"),
+        ("K", "L"),
+        ("K", "YOU"),
+        ("I", "SAN")
+    ]
+    orbit_map = map_orbits(orbits)
+    assert 4 == orbital_transfers(orbit_map, "YOU", "SAN")
+
+
 def parse_orbit_input(orbit_file):
     orbits = []
     with open(orbit_file, "r") as orbit_f:
@@ -82,8 +102,32 @@ def count_orbits(orbit_map):
     return count
 
 
+def orbital_transfers(orbit_map, target, dest):
+    for name in (target, dest):
+        if name not in orbit_map:
+            raise KeyError(f"Name not found in map: {name}")
+
+    target_orb_dist = {}
+    transfers = 0
+    next_obj = orbit_map[target].orbit_around
+    while next_obj:
+        target_orb_dist[next_obj.name] = transfers
+        transfers += 1
+        next_obj = next_obj.orbit_around
+
+    next_obj = orbit_map[dest].orbit_around
+    transfers = 0
+    while next_obj:
+        if next_obj.name in target_orb_dist:
+            return transfers + target_orb_dist[next_obj.name]
+        transfers += 1
+        next_obj = next_obj.orbit_around
+
+    return None
+
+
 if __name__ == "__main__":
     orbits = parse_orbit_input("./input")
     orbit_map = map_orbits(orbits)
-    orbit_count = count_orbits(orbit_map)
-    print(orbit_count)
+    print("Orbit count:", count_orbits(orbit_map))
+    print("Transfers for YOU to SAN:", orbital_transfers(orbit_map, "YOU", "SAN"))
