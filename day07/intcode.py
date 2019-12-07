@@ -198,8 +198,12 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         program = sys.argv[1]
 
-    output = run_loopback(program, [9,8,7,6,5])
+    output = 0
+    possible_settings = [5,6,7,8,9]
+    for phase_settings in permutations(possible_settings):
+        output = max(run_loopback(program, phase_settings), output)
     print(output)
+
     """
     output = 0
     setting_values = [0, 1, 2, 3, 4]
