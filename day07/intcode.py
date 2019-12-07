@@ -27,6 +27,8 @@ Intcode program overview:
         - 0 = position mode (parameter value is a position to the requested value)
 """
 import pytest
+import sys
+from itertools import permutations
 
 test_cases = [
     ([1, 0, 0, 0, 99], [2, 0, 0, 0, 99]),
@@ -35,7 +37,6 @@ test_cases = [
     ([1, 1, 1, 4, 88, 5, 6, 0, 99], [30, 1, 1, 4, 2, 5, 6, 0, 99]),
     ([1002, 4, 3, 4, 33], [1002, 4, 3, 4, 99]),
 ]
-
 
 @pytest.mark.parametrize("input, output", test_cases)
 def test_intcode(input, output):
@@ -70,8 +71,9 @@ def process_op_code(opcode):
     return (op_mode, param)
 
 
-def parse_intcode(intcode):
+def parse_intcode(intcode, input_list):
     i = 0
+    output = []
 
     def param_value(id, mode):
         if mode == 0:
@@ -96,13 +98,15 @@ def parse_intcode(intcode):
         elif op == 3:
             next_index += 2
             value_1 = param_value(index + 1, 1)
-            in_int = int(input("Input single int:"))
-            if not 0 <= in_int < 10:
-                raise ValueError(f"Invalid input provided: {in_int}")
+            if input_list:
+                in_int = input_list.pop(0)
+            else:
+                in_int = int(input("Input: "))
             intcode[value_1] = in_int
         elif op == 4:
             next_index += 2
             value_1 = param_value(index + 1, param[0])
+            output.append(value_1)
             print(f"Output: {value_1}")
         elif op == 5:
             value_1 = param_value(index + 1, param[0])
@@ -136,21 +140,37 @@ def parse_intcode(intcode):
     while i < len(intcode):
         op_mode, param = process_op_code(intcode[i])
         if op_mode == 99:
-            return intcode
+            return output
         else:
             i = intcode_op(i, op_mode, param)
 
 
-def intcode_executor(intcode_file, noun=None, verb=None):
+def intcode_executor(intcode_file, input_list=[]):
     intcode = read_intcode(intcode_file)
-    if noun:
-        intcode[1] = noun
-    if verb:
-        intcode[2] = verb
-    processed_intcode = parse_intcode(intcode)
+    output = parse_intcode(intcode, input_list)
 
-    return
+    return output
+
+
+def run_amplifier(program, phase_settings):
+    signal = 0
+    for i in range(5):
+        input_list = [phase_settings[i], signal]
+        output = intcode_executor(program, input_list)
+        signal = output[0]
+
+    return signal
 
 
 if __name__ == "__main__":
-    intcode_executor("./input")
+    program = "./input"
+    if len(sys.argv) > 1:
+        program = sys.argv[1]
+
+    output = 0
+    setting_values = [0, 1, 2, 3, 4]
+    for phase_settings in permutations(setting_values):
+        result = run_amplifier(program, phase_settings)
+        output = max(output, result)
+
+    print(output)
