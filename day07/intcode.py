@@ -38,6 +38,7 @@ test_cases = [
     ([1002, 4, 3, 4, 33], [1002, 4, 3, 4, 99]),
 ]
 
+
 @pytest.mark.parametrize("input, output", test_cases)
 def test_intcode(input, output):
     assert parse_intcode(input) == output
@@ -71,8 +72,8 @@ def process_op_code(opcode):
     return (op_mode, param)
 
 
-def parse_intcode(intcode, input_list):
-    i = 0
+def parse_intcode(intcode, input_list, index=0, pause_on_output=False):
+    i = index
     output = []
 
     def param_value(id, mode):
@@ -140,14 +141,16 @@ def parse_intcode(intcode, input_list):
     while i < len(intcode):
         op_mode, param = process_op_code(intcode[i])
         if op_mode == 99:
-            return output
+            return output, intcode, -1
         else:
             i = intcode_op(i, op_mode, param)
+        if op_mode == 4 and pause_on_output:
+            return output, intcode, i
 
 
 def intcode_executor(intcode_file, input_list=[]):
     intcode = read_intcode(intcode_file)
-    output = parse_intcode(intcode, input_list)
+    output, intcode, index = parse_intcode(intcode, input_list, index=0)
 
     return output
 
@@ -162,15 +165,45 @@ def run_amplifier(program, phase_settings):
     return signal
 
 
+def run_loopback(program, phase_settings):
+    signal = 0
+    intcode = read_intcode(program)
+    amps = len(phase_settings)
+
+    prog_states = [intcode.copy() for _ in range(amps)]
+    index_states = [0] * amps
+    input_states = [[x] for x in phase_settings]
+    input_states[0].append(0)
+    last_output = None
+
+    while index_states[-1] != -1:
+        for i in range(amps):
+            output, intcode, index = parse_intcode(
+                prog_states[i],
+                input_list=input_states[i],
+                index=index_states[i],
+                pause_on_output=True,
+            )
+            input_states[i] = []
+            prog_states[i] = intcode
+            index_states[i] = index
+            if index != -1:
+                input_states[(i+1) % amps].append(output[0])
+                last_output = output[0]
+
+    return last_output
+
 if __name__ == "__main__":
     program = "./input"
     if len(sys.argv) > 1:
         program = sys.argv[1]
 
+    output = run_loopback(program, [9,8,7,6,5])
+    print(output)
+    """
     output = 0
     setting_values = [0, 1, 2, 3, 4]
     for phase_settings in permutations(setting_values):
         result = run_amplifier(program, phase_settings)
         output = max(output, result)
-
-    print(output)
+    """
