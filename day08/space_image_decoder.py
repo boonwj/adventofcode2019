@@ -51,10 +51,30 @@ def compute_checksum(layers):
     return min_layer.count('1') * min_layer.count('2')
 
 
+def obtain_coloured_layer(layers, height, width):
+    colour_layer = [2] * height * width
+    for i, _ in enumerate(colour_layer):
+        for j, layer in enumerate(layers):
+            if layer[i] != "2":
+                colour_layer[i] = ' ' if layer[i] == "0" else "X"
+                break
+
+    return colour_layer
+
+
+def decode_image(image_file, height, width):
+    layers = read_image_input(image_file, height, width)
+    color_layer = obtain_coloured_layer(layers, height, width)
+    return [color_layer[i: i + width] for i in range(0, len(color_layer), width)]
+
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        sys.exit(f"usage: {sys.argv[0]} <input file>")
-    input_file = sys.argv[1]
-    layers = read_image_input(input_file, 25, 6)
+        sys.exit(f"usage: {sys.argv[0]} <image file>")
+    image_file = sys.argv[1]
+    layers = read_image_input(image_file, 6, 25)
 
     print(compute_checksum(layers))
+
+    for row in decode_image(image_file, 6, 25):
+        print(''.join(row))
