@@ -115,23 +115,27 @@ class IntCode:
 
         return (op_mode, param_mode_map)
 
-    def _get_value(self, offset, mode_map):
+    def _get_value_addr(self, offset, mode_map, ret="value"):
         mode = mode_map.get(offset, 0)
         mode_name = self.param_modes[mode]
         addr = self.addr + offset
+        value_addr = None
 
         if mode_name == "POS":
-            pt_addr = self.program[addr]
-            if pt_addr >= len(self.program):
-                return 0
-            else:
-                return self.program[pt_addr]
+            value_addr = self.program[addr]
         elif mode_name == "IMM":
-            return self.program[addr]
+            value_addr = addr
         elif mode_name == "REL":
-            return self.program[self.rel_base + self.program[addr]]
+            value_addr = self.rel_base + self.program[addr]
         else:
             raise KeyError(f"Invalid parameter mode: {mode_name}")
+
+        if ret == "value":
+            return 0 if value_addr >= len(self.program) else self.program[value_addr]
+        elif ret == "addr":
+            return value_addr
+        else:
+            raise AttributeError(f"Invalid ret type: {ret}")
 
     def _assign(self, tgt_addr, value):
         if tgt_addr < 0:
@@ -146,63 +150,63 @@ class IntCode:
         ref = self.addr
 
         if op_name == "SUM":
-            p1 = self._get_value(1, param_mode_map)
-            p2 = self._get_value(2, param_mode_map)
-            p3 = self.program[ref + 3]
+            p1 = self._get_value_addr(1, param_mode_map)
+            p2 = self._get_value_addr(2, param_mode_map)
+            p3 = self._get_value_addr(3, param_mode_map, ret="addr")
             self._assign(p3, p1 + p2)
             self.addr += 4
 
         elif op_name == "MUL":
-            p1 = self._get_value(1, param_mode_map)
-            p2 = self._get_value(2, param_mode_map)
-            p3 = self.program[ref + 3]
+            p1 = self._get_value_addr(1, param_mode_map)
+            p2 = self._get_value_addr(2, param_mode_map)
+            p3 = self._get_value_addr(3, param_mode_map, ret="addr")
             self._assign(p3, p1 * p2)
             self.addr += 4
 
         elif op_name == "IN":
-            p1 = self.program[self.addr + 1]
+            p1 = self._get_value_addr(1, param_mode_map, ret="addr")
             if not self.input:
                 self.input.append(int(input("Input: ")))
             self._assign(p1, self.input.pop(0))
             self.addr += 2
 
         elif op_name == "OUT":
-            p1 = self._get_value(1, param_mode_map)
+            p1 = self._get_value_addr(1, param_mode_map)
             self.output.append(p1)
             self.addr += 2
 
         elif op_name == "JUMP_T":
-            p1 = self._get_value(1, param_mode_map)
+            p1 = self._get_value_addr(1, param_mode_map)
             if p1 != 0:
-                self.addr = self._get_value(2, param_mode_map)
+                self.addr = self._get_value_addr(2, param_mode_map)
             else:
                 self.addr += 3
 
         elif op_name == "JUMP_F":
-            p1 = self._get_value(1, param_mode_map)
+            p1 = self._get_value_addr(1, param_mode_map)
             if p1 == 0:
-                self.addr = self._get_value(2, param_mode_map)
+                self.addr = self._get_value_addr(2, param_mode_map)
             else:
                 self.addr += 3
 
         elif op_name == "LESS":
-            p1 = self._get_value(1, param_mode_map)
-            p2 = self._get_value(2, param_mode_map)
-            p3 = self.program[ref + 3]
+            p1 = self._get_value_addr(1, param_mode_map)
+            p2 = self._get_value_addr(2, param_mode_map)
+            p3 = self._get_value_addr(3, param_mode_map, ret="addr")
             value = 1 if p1 < p2 else 0
             self._assign(p3, value)
             self.addr += 4
 
         elif op_name == "EQUALS":
-            p1 = self._get_value(1, param_mode_map)
-            p2 = self._get_value(2, param_mode_map)
-            p3 = self.program[ref + 3]
+            p1 = self._get_value_addr(1, param_mode_map)
+            p2 = self._get_value_addr(2, param_mode_map)
+            p3 = self._get_value_addr(3, param_mode_map, ret="addr")
             value = 1 if p1 == p2 else 0
             self._assign(p3, value)
             self.addr += 4
 
         elif op_name == "ADJ_REL":
-            p1 = self._get_value(1, param_mode_map)
+            p1 = self._get_value_addr(1, param_mode_map)
             self.rel_base += p1
             self.addr += 2
 
