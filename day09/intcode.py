@@ -62,175 +62,165 @@ test_cases = [
 
 @pytest.mark.parametrize("input, output", test_cases)
 def test_intcode(input, output):
-    assert parse_intcode(input) == output
+    # assert parse_intcode(input) == output
+    pass
 
+class IntCode:
+    def __init__(self, program):
+        self.program = program
+        self.addr = 0
+        self.output = []
+        self.input = []
+        self.op_modes = {
+            1: "SUM",
+            2: "MUL",
+            3: "IN",
+            4: "OUT",
+            5: "JUMP_T",
+            6: "JUMP_F",
+            7: "LESS",
+            8: "EQUALS",
+            9: "ADJ_REL",
+            99: "END",
+        }
+        self.param_modes = {
+            0: "POS",
+            1: "IMM",
+            2: "REL",
+        }
 
-def read_intcode(intcode_file):
-    intcode = []
-    with open(intcode_file, "r") as int_f:
-        intcode = int_f.read().split(",")
+    @classmethod
+    def from_ext_file(cls, program_file):
+        intcode = []
+        with open(program_file, "r") as int_f:
+            intcode = int_f.read().split(",")
 
-    return list(map(int, intcode))
+        return cls(list(map(int, intcode)))
 
+    def _compute_op_code(self, op_code):
+        op_mode = op_code % 100
+        param_mode = op_code // 100
 
-def process_op_code(opcode):
-    """
-    - Validate op code
-    - Determine instructions and parameter mode
-    """
-    op_mode = opcode % 100
-    para_mode = opcode // 100
+        param_mode_map = {}
 
-    param = []
+        if op_mode not in self.op_modes:
+            raise ValueError(f"Invalid op code: {op_mode} - {op_code}")
 
-    if op_mode not in (1, 2, 3, 4, 5, 6, 7, 8, 99):
-        raise ValueError(f"Invalid op code: {op_mode}")
+        i = 0
+        while param_mode:
+            i += 1
+            param_mode_map[i] = param_mode % 10
+            param_mode //= 10
 
-    for _ in range(3):
-        param.append(para_mode % 10)
-        para_mode //= 10
+        return (op_mode, param_mode_map)
 
-    return (op_mode, param)
+    def _get_value(self, offset, mode_map):
+        mode = mode_map.get(offset, 0)
+        mode_name = self.param_modes[mode]
+        addr = self.addr + offset
 
+        if mode_name == "POS":
+            return self.program[self.program[addr]]
+        elif mode_name == "IMM":
+            return self.program[addr]
+        elif mode_name == "REL":
+            pass
+        else:
+            raise KeyError(f"Invalid parameter mode: {mode_name}")
 
-def parse_intcode(intcode, input_list, index=0, pause_on_output=False):
-    i = index
-    output = []
+    def _execute(self, op_mode, param_mode_map):
+        op_name = self.op_modes[op_mode]
+        ref = self.addr
 
-    def param_value(id, mode):
-        if mode == 0:
-            return intcode[intcode[id]]
-        if mode == 1:
-            return intcode[id]
+        if op_name == "SUM":
+            p1 = self._get_value(1, param_mode_map)
+            p2 = self._get_value(2, param_mode_map)
+            p3 = self.program[ref + 3]
+            self.program[p3] = p1 + p2
+            self.addr += 4
 
-    def intcode_op(index, op, param):
-        next_index = index
-        if op == 1:
-            next_index += 4
-            value_1 = param_value(index + 1, param[0])
-            value_2 = param_value(index + 2, param[1])
-            value_3 = param_value(index + 3, 1)
-            intcode[value_3] = value_1 + value_2
-        elif op == 2:
-            next_index += 4
-            value_1 = param_value(index + 1, param[0])
-            value_2 = param_value(index + 2, param[1])
-            value_3 = param_value(index + 3, 1)
-            intcode[value_3] = value_1 * value_2
-        elif op == 3:
-            next_index += 2
-            value_1 = param_value(index + 1, 1)
-            if input_list:
-                in_int = input_list.pop(0)
+        elif op_name == "MUL":
+            p1 = self._get_value(1, param_mode_map)
+            p2 = self._get_value(2, param_mode_map)
+            p3 = self.program[ref + 3]
+            self.program[p3] = p1 * p2
+            self.addr += 4
+
+        elif op_name == "IN":
+            p1 = self.program[self.addr + 1]
+            if not self.input:
+                self.input.append(int(input("Input: ")))
+            self.program[p1] = self.input.pop(0)
+            self.addr += 2
+
+        elif op_name == "OUT":
+            p1 = self._get_value(1, param_mode_map)
+            self.output.append(p1)
+            self.addr += 2
+
+        elif op_name == "JUMP_T":
+            p1 = self._get_value(1, param_mode_map)
+            if p1 != 0:
+                self.addr = self._get_value(2, param_mode_map)
             else:
-                in_int = int(input("Input: "))
-            intcode[value_1] = in_int
-        elif op == 4:
-            next_index += 2
-            value_1 = param_value(index + 1, param[0])
-            output.append(value_1)
-            print(f"Output: {value_1}")
-        elif op == 5:
-            value_1 = param_value(index + 1, param[0])
-            if value_1 != 0:
-                next_index = param_value(index + 2, param[1])
+                self.addr += 3
+
+        elif op_name == "JUMP_F":
+            p1 = self._get_value(1, param_mode_map)
+            if p1 == 0:
+                self.addr = self._get_value(2, param_mode_map)
             else:
-                next_index += 3
-        elif op == 6:
-            value_1 = param_value(index + 1, param[0])
-            if value_1 == 0:
-                next_index = param_value(index + 2, param[1])
-            else:
-                next_index += 3
-        elif op == 7:
-            next_index += 4
-            value_1 = param_value(index + 1, param[0])
-            value_2 = param_value(index + 2, param[1])
-            value_3 = param_value(index + 3, 1)
-            intcode[value_3] = 1 if value_1 < value_2 else 0
-        elif op == 8:
-            next_index += 4
-            value_1 = param_value(index + 1, param[0])
-            value_2 = param_value(index + 2, param[1])
-            value_3 = param_value(index + 3, 1)
-            intcode[value_3] = 1 if value_1 == value_2 else 0
+                self.addr += 3
+
+        elif op_name == "LESS":
+            p1 = self._get_value(1, param_mode_map)
+            p2 = self._get_value(2, param_mode_map)
+            p3 = self.program[ref + 3]
+            self.program[p3] = 1 if p1 < p2 else 0
+            self.addr += 4
+
+        elif op_name == "EQUALS":
+            p1 = self._get_value(1, param_mode_map)
+            p2 = self._get_value(2, param_mode_map)
+            p3 = self.program[ref + 3]
+            self.program[p3] = 1 if p1 == p2 else 0
+            self.addr += 4
+
+        elif op_name == "ADJ_REL":
+            pass
+
+        elif op_name == "END":
+            print("Program reached its end!")
+
         else:
             raise ValueError(f"Invalid op code provided: {op}")
 
-        return next_index
+        return op_name
 
-    while i < len(intcode):
-        op_mode, param = process_op_code(intcode[i])
-        if op_mode == 99:
-            return output, intcode, -1
-        else:
-            i = intcode_op(i, op_mode, param)
-        if op_mode == 4 and pause_on_output:
-            return output, intcode, i
+    def run(self, pause_on_output=False):
+        exec = True
+        while exec:
+            if self.addr >= len(self.program):
+                raise OverflowError(f"Current address ({self.addr}) exceeds program size ({len(self.program)})")
 
+            op_mode, param_mode_map = self._compute_op_code(self.program[self.addr])
+            exec_op = self._execute(op_mode, param_mode_map)
 
-def intcode_executor(intcode_file, input_list=[]):
-    intcode = read_intcode(intcode_file)
-    output, intcode, index = parse_intcode(intcode, input_list, index=0)
+            if exec_op == "END" or (exec_op == "OUT" and pause_on_output):
+                exec = False
 
-    return output
+        return self.output
 
+    def add_input(self, value):
+        self.input.append(value)
 
-def run_amplifier(program, phase_settings):
-    signal = 0
-    for i in range(5):
-        input_list = [phase_settings[i], signal]
-        output = intcode_executor(program, input_list)
-        signal = output[0]
-
-    return signal
-
-
-def run_loopback(program, phase_settings):
-    signal = 0
-    intcode = read_intcode(program)
-    amps = len(phase_settings)
-
-    prog_states = [intcode.copy() for _ in range(amps)]
-    index_states = [0] * amps
-    input_states = [[x] for x in phase_settings]
-    input_states[0].append(0)
-    last_output = None
-
-    while index_states[-1] != -1:
-        for i in range(amps):
-            output, intcode, index = parse_intcode(
-                prog_states[i],
-                input_list=input_states[i],
-                index=index_states[i],
-                pause_on_output=True,
-            )
-            input_states[i] = []
-            prog_states[i] = intcode
-            index_states[i] = index
-            if index != -1:
-                input_states[(i+1) % amps].append(output[0])
-                last_output = output[0]
-
-    return last_output
 
 if __name__ == "__main__":
     program = "./input"
     if len(sys.argv) > 1:
         program = sys.argv[1]
 
-    """
-    output = 0
-    possible_settings = [5,6,7,8,9]
-    for phase_settings in permutations(possible_settings):
-        output = max(run_loopback(program, phase_settings), output)
-    print(output)
-    """
+    intcode_prog = IntCode.from_ext_file(program)
+    output = intcode_prog.run()
 
-    """
-    output = 0
-    setting_values = [0, 1, 2, 3, 4]
-    for phase_settings in permutations(setting_values):
-        result = run_amplifier(program, phase_settings)
-        output = max(output, result)
-    """
+    print(output)
