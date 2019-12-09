@@ -69,6 +69,7 @@ class IntCode:
     def __init__(self, program):
         self.program = program
         self.addr = 0
+        self.rel_base = 0
         self.output = []
         self.input = []
         self.op_modes = {
@@ -120,13 +121,25 @@ class IntCode:
         addr = self.addr + offset
 
         if mode_name == "POS":
-            return self.program[self.program[addr]]
+            pt_addr = self.program[addr]
+            if pt_addr >= len(self.program):
+                return 0
+            else:
+                return self.program[pt_addr]
         elif mode_name == "IMM":
             return self.program[addr]
         elif mode_name == "REL":
-            pass
+            return self.program[self.rel_base + self.program[addr]]
         else:
             raise KeyError(f"Invalid parameter mode: {mode_name}")
+
+    def _assign(self, tgt_addr, value):
+        if tgt_addr < 0:
+            raise IndexError(f"Negative address error: {tgt_addr}")
+        if tgt_addr >= len(self.program):
+            diff = tgt_addr - len(self.program) + 1
+            self.program.extend([0] * diff)
+        self.program[tgt_addr] = value
 
     def _execute(self, op_mode, param_mode_map):
         op_name = self.op_modes[op_mode]
@@ -136,21 +149,21 @@ class IntCode:
             p1 = self._get_value(1, param_mode_map)
             p2 = self._get_value(2, param_mode_map)
             p3 = self.program[ref + 3]
-            self.program[p3] = p1 + p2
+            self._assign(p3, p1 + p2)
             self.addr += 4
 
         elif op_name == "MUL":
             p1 = self._get_value(1, param_mode_map)
             p2 = self._get_value(2, param_mode_map)
             p3 = self.program[ref + 3]
-            self.program[p3] = p1 * p2
+            self._assign(p3, p1 * p2)
             self.addr += 4
 
         elif op_name == "IN":
             p1 = self.program[self.addr + 1]
             if not self.input:
                 self.input.append(int(input("Input: ")))
-            self.program[p1] = self.input.pop(0)
+            self._assign(p1, self.input.pop(0))
             self.addr += 2
 
         elif op_name == "OUT":
@@ -176,18 +189,22 @@ class IntCode:
             p1 = self._get_value(1, param_mode_map)
             p2 = self._get_value(2, param_mode_map)
             p3 = self.program[ref + 3]
-            self.program[p3] = 1 if p1 < p2 else 0
+            value = 1 if p1 < p2 else 0
+            self._assign(p3, value)
             self.addr += 4
 
         elif op_name == "EQUALS":
             p1 = self._get_value(1, param_mode_map)
             p2 = self._get_value(2, param_mode_map)
             p3 = self.program[ref + 3]
-            self.program[p3] = 1 if p1 == p2 else 0
+            value = 1 if p1 == p2 else 0
+            self._assign(p3, value)
             self.addr += 4
 
         elif op_name == "ADJ_REL":
-            pass
+            p1 = self._get_value(1, param_mode_map)
+            self.rel_base += p1
+            self.addr += 2
 
         elif op_name == "END":
             print("Program reached its end!")
