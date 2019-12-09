@@ -11,7 +11,7 @@ Intcode program overview:
     - 3, parameters 1, (input_store_position)
         - Request user input for single int, store in input_store_position
     - 4, parameters 1, (output_position)
-        - Print out value in output_positoin
+        - Print out value in output_position
     - 5, paramters 2, (t/f, position)
         - jump-if-true:
             - if the first parameter is non-zero, sets the instruction pointer to the value from the second parameter.
@@ -28,7 +28,8 @@ Intcode program overview:
         - is equals:
             - if the first parameter is equal to the second parameter, it stores 1 in the position given by the third parameter.
             - Otherwise, it stores 0.
-    - 9, p
+    - 9, parameters 1, (num1)
+        - adjust relative base by value of num1 (+ or -)
     - 99, parameters 0
         - Program finish, halt.
 
@@ -42,6 +43,9 @@ Intcode program overview:
     - Parameter modes:
         - 0 = position mode (parameter value is a position to the requested value)
         - 1 = immediate mode (use the parameter value as it is)
+        - 2 = relative mode (similar to position mode, but parameters count from a relative base, starting from 0)
+            - relative base 0 == position mode
+            - relative base value is changed by opmode 9
 """
 import pytest
 import sys
@@ -215,11 +219,13 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         program = sys.argv[1]
 
+    """
     output = 0
     possible_settings = [5,6,7,8,9]
     for phase_settings in permutations(possible_settings):
         output = max(run_loopback(program, phase_settings), output)
     print(output)
+    """
 
     """
     output = 0
