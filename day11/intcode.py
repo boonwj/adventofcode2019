@@ -244,14 +244,14 @@ if __name__ == "__main__":
         program = sys.argv[1]
 
     intcode_prog = IntCode.from_ext_file(program)
-    intcode_prog.add_input(0)
+    intcode_prog.add_input(1)
 
     run = True
     pos = (0, 0)
     directions = ["U", "R", "D", "L"]
     cur_dir = 0
     op_count = 0
-    painted_panels = {}
+    painted_panels = {(0, 0): 1}
     painted = 0
     robo_output = []
     while run:
@@ -282,13 +282,13 @@ if __name__ == "__main__":
 
             move = directions[cur_dir]
             if move == "U":
-                pos = (pos[0], pos[1] + 1)
-            elif move == "D":
-                pos = (pos[0], pos[1] - 1)
-            elif move == "L":
-                pos = (pos[0] - 1, pos[1])
-            elif move == "R":
                 pos = (pos[0] + 1, pos[1])
+            elif move == "D":
+                pos = (pos[0] - 1, pos[1])
+            elif move == "L":
+                pos = (pos[0], pos[1] - 1)
+            elif move == "R":
+                pos = (pos[0], pos[1] + 1)
 
             # Add input
             intcode_prog.add_input(painted_panels.get(pos, 0))
@@ -297,3 +297,27 @@ if __name__ == "__main__":
 
     print(painted)
     print(len(painted_panels))
+
+    panels = painted_panels.keys()
+
+    min_rows = min(panels, key=lambda x: x[0])[0]
+    min_cols = min(panels, key=lambda x: x[1])[1]
+
+    colour_list = []
+    max_rows = 0
+    max_cols = 0
+    for pos, colour in painted_panels.items():
+        norm_pos = (pos[0] - min_rows, pos[1] + min_cols)
+        max_rows = max(max_rows, norm_pos[0])
+        max_cols= max(max_cols, norm_pos[1])
+        colour_list.append((norm_pos, colour))
+
+    canvas = [["."] * (max_cols + 1) for _ in range(max_rows + 1)]
+
+    for pos, colour in colour_list:
+        row, col = pos
+        canvas[row][col] = "#" if colour else "."
+
+    for row in canvas[::-1]:
+        print("".join(row))
+
