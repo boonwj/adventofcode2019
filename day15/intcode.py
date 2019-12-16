@@ -244,6 +244,32 @@ class RepairBot:
             print(output[-1])
 
 
+def draw(visited):
+    min_x = 0
+    max_x = 0
+    min_y = 0
+    max_y = 0
+    for coord in visited.keys():
+        min_x = min(coord[0], min_x)
+        min_y = min(coord[1], min_y)
+        max_x = max(coord[0], min_x)
+        max_y = max(coord[1], min_y)
+
+    canvas_x = abs(min_x) + abs(max_x) + 1
+    canvas_y = abs(min_y) + abs(max_y) + 1
+
+    canvas = [[" "] * 41 for _ in range(41)]
+
+
+    for coord, value in visited.items():
+        new_x = coord[0] + abs(min_x)
+        new_y = coord[1] + abs(min_y)
+        canvas[new_x][new_y] = value
+
+    for row in canvas:
+        print("".join(row))
+
+
 if __name__ == "__main__":
     program = "./input"
     if len(sys.argv) > 1:
@@ -255,9 +281,12 @@ if __name__ == "__main__":
 
     queue.append((intcode_prog.copy_state(), 0, (0,0)))
 
-    visited = {(0,0): True}
+    visited = {(0,0): "X"}
 
     steps_to_oxy = 0
+    max_depth = 0
+
+    program_state_oxy = None
 
     while queue:
         next_state, steps, loc = queue.pop(0)
@@ -265,15 +294,47 @@ if __name__ == "__main__":
 
         for i, next_loc in enumerate(surrounding_loc, start=1):
             if next_loc not in visited:
-                visited[next_loc] = True
                 prog = IntCode.from_existing_state(next_state)
                 prog.add_input(i)
                 output = prog.run(pause_on_output=True)
 
+                if output[-1] == 0:
+                    visited[next_loc] = "#"
                 if output[-1] == 1:
+                    visited[next_loc] = "."
                     queue.append((prog.copy_state(), steps+1, next_loc))
                 elif output[-1] == 2:
+                    visited[next_loc] = "O"
                     steps_to_oxy = steps+1
-                    break
+                    program_state_oxy = prog.copy_state()
+                else:
+                    max_depth = max(max_depth, steps)
+
+    queue = []
+    queue.append((program_state_oxy, 0, (0,0)))
+    visited = {(0,0): "X"}
+    max_depth = 0
+
+    while queue:
+        next_state, steps, loc = queue.pop(0)
+        surrounding_loc = [(loc[0], loc[1]-1), (loc[0], loc[1]+1), (loc[0]-1, loc[1]), (loc[0]+1, loc[1])]
+
+        for i, next_loc in enumerate(surrounding_loc, start=1):
+            if next_loc not in visited:
+                prog = IntCode.from_existing_state(next_state)
+                prog.add_input(i)
+                output = prog.run(pause_on_output=True)
+
+                if output[-1] == 0:
+                    visited[next_loc] = "#"
+                elif output[-1] == 1:
+                    visited[next_loc] = "."
+                    queue.append((prog.copy_state(), steps+1, next_loc))
+                elif output[-1] == 2:
+                    visited[next_loc] = "O"
+                    steps_to_oxy = steps+1
+                max_depth = max(max_depth, steps+1)
 
     print(steps_to_oxy)
+    draw(visited)
+    print(max_depth)
